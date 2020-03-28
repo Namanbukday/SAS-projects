@@ -1,0 +1,27 @@
+data W1;
+input id name $ add $ age;
+datalines;
+11 bb zz . 
+22 sd 0
+. ss zz .
+33 aa ss dd
+ ;
+run;
+
+%macro fill_rate(table);
+
+proc format;
+	value $missfmt ' '='Missing' other='Not missing';		/*putting "blank spaces" = missing */
+	value missfmt .='missing' other='not missing';		/*putting "." as missing */
+
+run;
+
+proc freq data=&TABLE;
+format _CHAR_ $missfmt.;			/* counting missing char*/
+tables _char_ / missing missprint nocum nopercent;
+format _numeric_ missfmt.;			/*counting missing numbers*/
+tables _numeric_ / missing missprint nocum nopercent;
+run;
+
+%mend fill_rate;
+%fill_rate(W1);

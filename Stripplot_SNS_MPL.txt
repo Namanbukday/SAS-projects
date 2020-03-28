@@ -1,0 +1,43 @@
+# importing libraries
+import matplotlib.pyplot as plt 
+import pandas as pd
+import numpy as np
+import seaborn as sns
+
+
+# Importing file to make dataframes
+df1 = pd.read_csv("actual.csv", delimiter = " ")
+df2 = pd.read_csv("predicted.csv", delimiter = " ")
+
+# restting index of the dataframe so i can access both columns
+# head(500) means starting 500 rows only
+df1 = df1.reset_index().head(500)	
+df2 = df2.reset_index().head(500)
+
+###########################################
+# TO SUBPLOT 2 CHARTS FOR 2 DATAFRAMES :
+plt.figure(figsize=(12,12))
+plt.subplot(1,2,1)	# Subplot no. 1
+plt.title("actual")		# title of the plot
+# 'x' means column on x-axis, 'y' means col on y-axis; data = <dataframe name>, color means color of the dots
+sns.stripplot( x = "machine_status", y = "index", data = df1, color = "green")
+
+plt.subplot(1,2,2)	# Subplot no. 2
+plt.title("predicted")
+sns.stripplot( x = "machine_status", y = "index", data = df2, color = "skyblue")
+plt.xlabel("machine_status")
+plt.ylabel("instances")
+plt.show()
+plt.close()
+
+#############################################
+# TO PLOT DATA FROM BOTH DATAFRAMES INTO ONE SINGLE CHART:
+plt.figure(figsize=(12,12))
+plt.title("deviation")
+sns.stripplot( x = "machine_status", y = "index", data = df1, color = "red", label = "actual")		# label means labels for the datapoints for different dataframe
+sns.stripplot( x = "machine_status", y = "index", data = df2, color = "skyblue", label = "predicted")
+plt.xlabel("machine_status")
+plt.ylabel("instances")
+plt.legend()
+plt.show()
+plt.close()

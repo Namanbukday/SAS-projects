@@ -1,0 +1,123 @@
+/******** CREATING 3 SOURCE TABLES *********/
+
+data NAMAN.EMP_INFO1;
+	input ID name $ age add $ SALARY NO_OF_SALES;
+	cards;
+11 nam 33 qw 200 30
+22 er 23 ss 300 40
+33 eee 32 qq 400 50
+44 qe 22 qe 500 60
+55 fff 44 rr 600 70
+66 qqq 22 ee 700 80
+;
+run;
+
+data NAMAN.EMP_INFO2;
+	input ID name $ age add $ SALARY NO_OF_SALES;
+	cards;
+11 qwe 33 qw 700 80
+33 asd 23 ss 600 70
+66 rty 99 dd 500 60
+88 yui 22 qe 400 50
+55 iop 44 rr 300 40
+44 ttr 77 33 200 30
+;
+run;
+
+DATA NAMAN.EMP_INFO3;
+	INPUT ID NAME $ AGE ADD $ SALARY NO_OF_SALES;
+	CARDS;
+22 SALLU 33 qw 200 30
+44 BILLU 23 ss 300 40
+55 TILLU 32 qq 400 50
+77 BATMAN 22 qe 500 60
+88 SUPERMAN 44 rr 600 70
+99 PENGUIN 22 ee 700 80
+;
+RUN;
+
+/********* CREATING 1 TARGET TABLE **********/
+
+PROC SQL NOPRINT;
+CREATE TABLE NAMAN.ALL_EMP_INFO AS 
+	SELECT * FROM NAMAN.EMP_INFO1 I1
+		LEFT JOIN NAMAN.EMP_INFO2 I2
+		ON I1.ID = I2.ID
+		LEFT JOIN NAMAN.EMP_INFO3 I3
+		ON I1.ID = I3.ID
+		where I1.age > 30 ;
+quit;
+
+/**************************************************************************************/
+%let lib=NAMAN;
+
+%macro emptydsn(dsn,target);/*DSN=source_dataset TARGET=target_dataset*/
+proc sql noprint;
+ select  distinct NAME 
+  into    :NUM_LIST separated by " "
+  from    DICTIONARY.COLUMNS
+  where   LIBNAME="&LIB"
+    and   MEMNAME="&dsn"    /*REMOVE HARDCODE*/
+    and   TYPE eqt "num";
+ quit;
+  %put &NUM_LIST;     /*contains the list of numeric variables in the table*/
+ 
+ %let from= &lib..&dsn; 
+ %let from1= &lib..&target;
+ 
+ %do i = 1 %to %sysfunc(countw(&NUM_LIST));         
+ %let var = %scan(&num_list,&i);
+proc sql noprint;
+create table rcc&i (col char(50),RC_S num, CS_S num);  
+insert into rcc&i
+set col= "&var",
+ RC_S=(select count(&var)as row_cnt_src from &from) ,
+ CS_S= (select sum(&var) as checksum_src from &from );
+ 
+create table rtc&i (RC_T num, CS_T num);  
+insert into rtc&i
+ set
+ RC_T= (select count(&var)as row_cnt_tgt from &from1) ,
+ CS_T= (select sum(&var) as checksum_tgt from &from1 );
+
+ quit;
+ %end;
+ 
+ data new;
+ set
+ %DO I = 1 %TO %sysfunc(countw(&NUM_LIST));
+ rcc&I
+ %END;
+ ;
+ run;
+ 
+ data new1; 
+ set 
+ %DO I = 1 %TO %sysfunc(countw(&NUM_LIST));		/* MERGING MULTIPLE DATASETS USING DO LOOPS*/
+ rtc&I
+ %END;
+ ;
+ run;
+/*********   joining source and target RC and CS   ********/
+ data sss;
+ merge new new1;
+ run;
+
+ proc sql;        /* adding table name*/
+ alter table sss add Table_name char(50);
+ update sss 
+ set Table_name = "&target";
+ quit;
+proc print data=sss noobs;
+ title"final report";
+ %LET A = ' RC_S = ROW COUNT OF SOURCE ';
+%LET B = ' RC_T = ROW COUNT OF TARGET ';
+%LET C = ' CS_S = CHECKSUM OF SOURCE ' ;
+%LET D = ' CS_T = CHECKSUM OF TARGET ';  
+FOOTNOTE "&A &B &C &D";
+ var Table_name col RC_T CS_T RC_S CS_S  ;
+ run;
+%mend emptydsn;
+
+%emptydsn(EMP_INFO1, ALL_EMP_INFO);
+ 

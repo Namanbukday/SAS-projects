@@ -1,0 +1,11 @@
+data _null_;
+	format a b date9.;
+	a='01 nov 2014'd;
+	b='01 dec 2037'd;
+	monday = 0;
+	do i = a to b;
+	d = weekday(i);
+	if d = 2 then monday+1;
+	end;
+	put 'no of mondays ' monday;
+run;

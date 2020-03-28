@@ -1,0 +1,73 @@
+
+/**************************************************************************************/
+%let lib=NAMAN;
+
+%macro emptydsn(dsn,target);/*DSN=source_dataset TARGET=target_dataset*/
+proc sql noprint;
+ select  distinct NAME 
+  into    :NUM_LIST separated by " "
+  from    DICTIONARY.COLUMNS
+  where   LIBNAME="&LIB"
+    and   MEMNAME="&dsn"    /*REMOVE HARDCODE*/
+    and   TYPE eqt "num";
+ quit;
+  %put &NUM_LIST;     /*contains the list of numeric variables in the table*/
+ 
+ %let from= &lib..&dsn; 
+ %let from1= &lib..&target;
+ 
+ %do i = 1 %to %sysfunc(countw(&NUM_LIST));         
+ %let var = %scan(&num_list,&i);
+proc sql noprint;
+create table rcc&i (col char(50),RC_S num, CS_S num);  
+insert into rcc&i
+set col= "&var",
+ RC_S=(select count(&var)as row_cnt_src from &from) ,
+ CS_S= (select sum(&var) as checksum_src from &from );
+ 
+create table rtc&i (RC_T num, CS_T num);  
+insert into rtc&i
+ set
+ RC_T= (select count(&var)as row_cnt_tgt from &from1) ,
+ CS_T= (select sum(&var) as checksum_tgt from &from1 );
+
+ quit;
+ %end;
+ 
+ data new;
+ set
+ %DO I = 1 %TO %sysfunc(countw(&NUM_LIST));
+ rcc&I
+ %END;
+ ;
+ run;
+ 
+ data new1; 
+ set 
+ %DO I = 1 %TO %sysfunc(countw(&NUM_LIST));		/* MERGING MULTIPLE DATASETS USING DO LOOPS*/
+ rtc&I
+ %END;
+ ;
+ run;
+/*********   joining source and target RC and CS   ********/
+ data sss;
+ merge new new1;
+ run;
+
+ proc sql;        /* adding table name*/
+ alter table sss add Table_name char(50);
+ update sss 
+ set Table_name = "&target";
+ quit;
+proc print data=sss noobs;
+ title"final report";
+ %LET A = ' RC_S = ROW COUNT OF SOURCE ';
+%LET B = ' RC_T = ROW COUNT OF TARGET ';
+%LET C = ' CS_S = CHECKSUM OF SOURCE ' ;
+%LET D = ' CS_T = CHECKSUM OF TARGET ';  
+FOOTNOTE "&A &B &C &D";
+ var Table_name col RC_T CS_T RC_S CS_S  ;
+ run;
+%mend emptydsn;
+
+%emptydsn(EMP_INFO1, ALL_EMP_INFO);

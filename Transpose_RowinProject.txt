@@ -1,0 +1,45 @@
+data naman.nn1;
+input stage $ ecl;
+cards;
+stage1  300
+stage2  200
+
+;
+run;
+
+proc sql;
+select ecl into:sum1 from naman.nn1 where stage='stage1';
+%put ---&sum1;
+quit;
+
+proc transpose data = naman.nn1 OUT= naman.nn6(drop=_name_);
+               id stage;
+               run;
+
+%macro test;
+proc sql;
+select count(*) into:c from naman.nn1;
+%put 'STAGES PRESENT :' &c;
+
+%do i=1 %to 2;
+%put &i;
+select ecl into:sum&i from naman.nn1 where stage =resolve('stage&i');
+%let sum1 = 0;
+%let sum_1 = &sum1+&sum&i;
+
+/* %let sum_1 = %sysevalf(&sum1+&sum&i); */
+
+%put &sum_1;
+%end;
+alter table naman.nn6 add total_ecl num(8);
+ update naman.nn6 set total_ecl=&sum_1; 
+quit;
+		
+%mend test;
+option mprint;
+option mlogic ;
+option symbolgen;
+%test;
+proc sql;
+select * from naman.nn6;
+quit;

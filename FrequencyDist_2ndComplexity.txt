@@ -1,0 +1,34 @@
+
+data W1;
+input id name $ age add $;
+cards;
+11 nam 33 qw
+22 er 23 ss
+33 dd 99 dd
+11 qe 22 qe
+22 . 44 rr
+33 tt 77 33
+;
+run;
+
+%let lib=NW2;
+
+%macro FD(LIBRARY);
+proc sql noprint;
+ select  MEMNAME 
+  into    :NUM_LIST separated by " "
+  from    DICTIONARY.COLUMNS
+  where   LIBNAME="&LIBRARY" and memtype="data" ;    /*REMOVE HARDCODE*/
+quit;
+
+%do i = 1 %to %sysfunc(countw(&NUM_LIST));         
+%let VAR = %scan(&NUM_LIST,&i);
+proc freq data= &lib.&var;
+tables &var;
+run;
+%END;
+
+%mend FD;
+
+%fd();
+

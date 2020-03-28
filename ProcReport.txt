@@ -1,0 +1,42 @@
+data demo;
+input name $ age ph_no;
+cards;
+ab 22 1234
+b 23 2345
+c 24 3456
+ab 25 4567
+b 26 5678
+c 27 3433
+d 28 8788
+d 28 3375
+eb 28 5453
+eb 28 2323
+f 28 6836
+f 28 3543
+;
+run;
+
+/* Adding blank row */
+
+data test_data;
+    set demo;
+    output;
+    /* Add a blank lines*/
+    if _n_ in (2,5,10) then do; /* blank lines after row 2,5,10 */
+        call missing(of _all_);
+        output;
+    end;
+    options missing = " ";
+run;
+
+/* Coloring rows and removing header */
+proc report data = test_data;
+column name age ph_no;
+define name/ display " "; /*removed header 'name' from report */
+define age / display;
+define ph_no / display;
+compute name;
+if find(name, 'b')then call define (_row_,"style","style={background=lightblue font_weight=bold}");
+endcomp;
+run;
+ 

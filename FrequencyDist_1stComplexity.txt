@@ -1,0 +1,24 @@
+
+data W1;
+input id name $ age add $;
+cards;
+11 nam 33 qw
+22 er 23 ss
+33 dd 99 dd
+11 qe 22 qe
+22 . 44 rr
+33 tt 44 er
+44 ee 44 ry
+55 fh 23 rrr
+;
+run;
+
+%macro FD(table, column);
+
+proc freq data= &table;
+tables &column;
+run;
+
+%mend FD;
+
+%fd(W1,id);

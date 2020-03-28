@@ -1,0 +1,20 @@
+
+%macro fill_rate(table , column);		*macro to calculate fill rate by passing table and column name;
+proc sql;
+create table NAMAN.MISS as select nmiss(&column) as miss, Count(*) as countrec, 		/*using nmiss to find number of missing values*/
+nmiss(&column)*100/ count(*) as ratio from &table ;				/* computing ratio of filled values*/
+quit;
+
+
+PROC SQL;
+ create table NEW as select 100 - ratio as fill_rate   		/* to get the ratio of missing values*/
+ from NAMAN.miss;
+ quit;
+ 
+ 
+ proc print data = NEW;
+ run;    
+ 
+ %mend fill_rate;
+ 
+ %fill_rate( sashelp.cars , make);		*calling macro fill_rate

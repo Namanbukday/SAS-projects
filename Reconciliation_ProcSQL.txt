@@ -1,0 +1,85 @@
+data BATCH1;
+	input id name $ age add $ SALARY NO_OF_SALES;
+	cards;
+11 nam 33 qw 200 30
+22 er 23 ss 300 40
+33 eee 32 qq 400 50
+11 qe 22 qe 500 60
+22 fff 44 rr 600 70
+33 qqq 22 ee 700 80
+;
+run;
+
+data BATCH2;
+	input id name $ age add $ SALARY NO_OF_SALES;
+	cards;
+11 qwe 33 qw 700 80
+22 asd 23 ss 600 70
+33 rty 99 dd 500 60
+11 yui 22 qe 400 50
+22 iop 44 rr 300 40
+33 ttr 77 33 200 30
+;
+run;
+
+proc sql;
+	create table TARGET as select * from BATCH1 
+	Left join BATCH2 
+	on BATCH1.id=BATCH2.id 
+	where BATCH1.id > 11;
+quit;
+
+
+	proc sql;
+	create table RCCH1 (COL1 NUM, COL2 NUM , COL3 NUM, COL4 NUM);
+	INSERT INTO RCCH1
+		SET 
+		COL1 = (select count(age) as RC_source1_age FROM BATCH1),
+		COL2 = (select count(age) as RC_Target_age FROM TARGET),
+		COL3 = (SELECT sum(age) as CS_source1_age from BATCH1),
+		COL4 = (SELECT sum(age) as CS_Target_age from TARGET);
+		
+	create table RCCH2 (COL1 NUM, COL2 NUM , COL3 NUM, COL4 NUM);
+	INSERT INTO RCCH2
+		SET 
+		COL1 = (select count(SALARY) as RC_source1_age FROM BATCH2),
+		COL2 = (select count(SALARY) as RC_Target_age FROM TARGET),
+		COL3 = (SELECT sum(SALARY) as CS_source1_age from BATCH2),
+		COL4 = (SELECT sum(SALARY) as CS_Target_age from TARGET);
+		
+	create table RCCH3 (COL1 NUM, COL2 NUM , COL3 NUM, COL4 NUM);
+	INSERT INTO RCCH3
+		SET 
+		COL1 = (select count(NO_OF_SALES) as RC_source1_age FROM BATCH1),
+		COL2 = (select count(NO_OF_SALES) as RC_Target_age FROM TARGET),
+		COL3 = (SELECT sum(NO_OF_SALES) as CS_source1_age from BATCH1),
+		COL4 = (SELECT sum(NO_OF_SALES) as CS_Target_age from TARGET);
+quit;
+
+DATA TEMP;
+SET RCCH1 RCCH2 RCCH3;
+RUN;
+
+PROC SQL;
+ALTER TABLE TEMP ADD COLUMN_NAME CHAR(10);
+UPDATE TEMP SET COLUMN_NAME = 'AGE' WHERE COL3 > 200;
+UPDATE TEMP SET COLUMN_NAME = 'NO OF SALES' WHERE COL3 < 200;
+ALTER TABLE TEMP ADD TABLE_NAME CHAR(10);
+UPDATE TEMP SET TABLE_NAME = 'BATCH 2' WHERE COL3 > 200;
+UPDATE TEMP SET TABLE_NAME = 'BATCH 1' WHERE COL3 < 200;
+QUIT;
+
+proc report data= TEMP (WHERE=(TABLE_NAME IN ('BATCH 1', 'BATCH 2')));
+column TABLE_NAME COLUMN_NAME COL1 COL2 COL3 COL4 ;
+DEFINE COLUMN_NAME / DISPLAY ;
+DEFINE TABLE_NAME / GROUP;
+DEFINE COL1 / DISPLAY "ROW COUNT OF SOURCE TABLE";
+DEFINE COL2 / DISPLAY "ROW COUNT OF TARGET TABLE";
+DEFINE COL3 / DISPLAY "CHECK SUM OF SOURCE TABLE";
+DEFINE COL4 / DISPLAY "CHECK SUM OF TARGET TABLE";
+COMPUTE AFTER TABLE_NAME;
+LINE " ";
+ENDCOMP;
+
+RUN;
+
